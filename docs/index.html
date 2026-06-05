@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptX - AI Terminal Assistant | AI 终端助手</title>
+<meta name="description" content="AI-Powered Terminal Assistant — Ask, Generate, Debug. Single binary, multi-model, beautiful TUI. | AI 终端助手 — 问答、生成命令、调试错误。">
+<style>
+  :root {
+    --bg: #0d1117;
+    --card-bg: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --heading: #f0f6fc;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+    --pink: #ff6b9d;
+    --green: #7ee787;
+    --dark-muted: #484f58;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; overflow-x: hidden; }
+  canvas { position: fixed; top: 0; left: 0; z-index: 0; }
+
+  /* Language Switcher */
+  .lang-switcher {
+    position: fixed; top: 1rem; right: 1rem; z-index: 100;
+    display: flex; gap: 0.5rem;
+  }
+  .lang-btn {
+    padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--card-bg); color: var(--muted); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .lang-btn:hover { border-color: var(--blue); color: var(--text); }
+  .lang-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+  .logo { font-size: 5rem; font-weight: 800; margin-bottom: 1rem; background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .tagline { font-size: 1.5rem; color: var(--muted); margin-bottom: 2rem; max-width: 600px; }
+
+  .terminal-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; max-width: 700px; width: 100%; text-align: left; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.9rem; line-height: 1.6; margin-bottom: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .terminal-box .prompt { color: var(--green); }
+  .terminal-box .cmd { color: var(--blue); font-weight: bold; }
+  .terminal-box .output { color: var(--text); }
+  .terminal-box .highlight { color: var(--pink); }
+
+  .cta-group { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; z-index: 1; }
+  .btn { padding: 0.75rem 1.75rem; border-radius: 8px; font-size: 1rem; font-weight: 600; text-decoration: none; transition: all 0.2s; cursor: pointer; border: none; }
+  .btn-primary { background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(88, 166, 255, 0.3); }
+  .btn-secondary { background: #21262d; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #30363d; transform: translateY(-2px); }
+
+  .features { position: relative; z-index: 1; padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
+  .section-title { text-align: center; font-size: 2.5rem; font-weight: 800; margin-bottom: 3rem; color: var(--heading); }
+  .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+  .feature-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; transition: all 0.3s; }
+  .feature-card:hover { border-color: var(--blue); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(88, 166, 255, 0.1); }
+  .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+  .feature-card h3 { color: var(--heading); margin-bottom: 0.75rem; font-size: 1.2rem; }
+  .feature-card p { color: var(--muted); line-height: 1.6; font-size: 0.95rem; }
+
+  .install { position: relative; z-index: 1; padding: 4rem 2rem; max-width: 900px; margin: 0 auto; }
+  .install-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin-bottom:1rem; }
+  .install-box .comment { color: var(--muted); }
+  .install-box .code { color: var(--green); }
+  .install-box .url { color: var(--blue); }
+  .tip { text-align:center; color:var(--muted); margin-top:1rem; }
+
+  .providers { position: relative; z-index: 1; padding: 2rem 2rem 4rem; max-width: 1200px; margin: 0 auto; }
+  .provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; text-align: center; }
+  .provider-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: all 0.3s; }
+  .provider-card:hover { border-color: var(--purple); }
+  .provider-card .name { font-size: 1.1rem; font-weight: 700; color: var(--heading); margin-bottom: 0.5rem; }
+  .provider-card .info { color: var(--muted); font-size: 0.85rem; }
+
+  .links { position: relative; z-index: 1; text-align: center; padding: 2rem; }
+  .links a { color: var(--blue); text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+
+  footer { position: relative; z-index: 1; text-align: center; padding: 2rem; color: var(--dark-muted); font-size: 0.85rem; }
+  footer a { color: var(--blue); text-decoration: none; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .logo { font-size: 3rem; }
+    .tagline { font-size: 1.1rem; }
+    .terminal-box { font-size: 0.75rem; padding: 1rem; }
+    .section-title { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<!-- Language Switcher -->
+<div class="lang-switcher">
+  <button class="lang-btn active" onclick="switchLang('en')" id="btn-en">EN</button>
+  <button class="lang-btn" onclick="switchLang('zh')" id="btn-zh">中文</button>
+</div>
+
+<section class="hero">
+  <div class="logo">PromptX</div>
+
+  <!-- EN content -->
+  <div id="en-content">
+    <p class="tagline">Your AI-powered terminal assistant. Ask questions, generate commands, debug errors — all from the command line.</p>
+
+    <div class="terminal-box">
+      <span class="prompt">$</span> <span class="cmd">px ask "find all large files over 100MB, sort by size"</span><br><br>
+      <span class="output">Here's the command to find and sort large files:</span><br>
+      <span class="prompt">$</span> <span class="highlight">find . -type f -size +100M -exec ls -lh {} \; 2>/dev/null | sort -k5 -hr</span><br><br>
+      <span class="output">This searches recursively from current directory, lists files > 100MB, and sorts by size descending.</span>
+    </div>
+
+    <div class="cta-group">
+      <a href="https://github.com/luoowei/promptx" class="btn btn-primary">Star on GitHub</a>
+      <a href="#install" class="btn btn-secondary">Install Now</a>
+    </div>
+  </div>
+
+  <!-- ZH content -->
+  <div id="zh-content" class="hidden">
+    <p class="tagline">你的 AI 终端助手。提问、生成命令、调试错误 — 一切都在命令行中完成。</p>
+
+    <div class="terminal-box">
+      <span class="prompt">$</span> <span class="cmd">px ask "查找所有超过100MB的大文件，按大小排序"</span><br><br>
+      <span class="output">下面是查找和排序大文件的命令：</span><br>
+      <span class="prompt">$</span> <span class="highlight">find . -type f -size +100M -exec ls -lh {} \; 2>/dev/null | sort -k5 -hr</span><br><br>
+      <span class="output">这会从当前目录递归搜索，列出大于 100MB 的文件，并按大小降序排列。</span>
+    </div>
+
+    <div class="cta-group">
+      <a href="https://github.com/luoowei/promptx" class="btn btn-primary">在 GitHub 上 Star</a>
+      <a href="#install" class="btn btn-secondary">立即安装</a>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<div id="en-features">
+<section class="features">
+  <h2 class="section-title">Why PromptX?</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div><h3>Instant Shell Commands</h3><p>Describe what you want in plain English. Get the exact command instantly. Never memorize flags again.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div><h3>Error Debugging</h3><p>Paste any error message. Get root cause analysis and the fix — no more Stack Overflow copy-paste.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎨</div><h3>Beautiful TUI</h3><p>Interactive chat mode with markdown rendering, syntax highlighting, and smooth animations.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔌</div><h3>Multi-Provider</h3><p>OpenAI, Anthropic Claude, or local Ollama models. Switch providers with a single command.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div><h3>Privacy First</h3><p>API keys stay on your machine. Use local models via Ollama for complete offline privacy.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛠</div><h3>Go Native</h3><p>Single binary. No runtime dependencies. Blazing fast startup. Cross-platform.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<div id="zh-features" class="hidden">
+<section class="features">
+  <h2 class="section-title">为什么选择 PromptX？</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div><h3>即时生成 Shell 命令</h3><p>用自然语言描述需求，立即获得精确命令。再也不需要背参数了。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div><h3>错误调试</h3><p>粘贴任意错误信息，获取根因分析和修复方案——告别 Stack Overflow 复制粘贴。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎨</div><h3>精美的 TUI</h3><p>交互式聊天模式，支持 markdown 渲染、语法高亮和流畅动画。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔌</div><h3>多模型支持</h3><p>OpenAI、Anthropic Claude 或本地 Ollama 模型。一条命令即可切换。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div><h3>隐私优先</h3><p>API 密钥保存在你的电脑上。使用 Ollama 本地模型实现完全离线隐私保护。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛠</div><h3>Go 原生</h3><p>单一二进制文件。零运行时依赖。极速启动。跨平台支持。</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- Install -->
+<div id="en-install">
+<section class="install" id="install">
+  <h2 class="section-title">Install in Seconds</h2>
+  <div class="install-box"><span class="comment"># macOS / Linux</span><br><span class="code">curl -fsSL https://raw.githubusercontent.com/luoowei/promptx/main/install.sh | bash</span></div>
+  <div class="install-box"><span class="comment"># Homebrew</span><br><span class="code">brew install luoowei/tap/promptx</span></div>
+  <div class="install-box"><span class="comment"># Go install</span><br><span class="code">go install github.com/luoowei/promptx/cmd/px@latest</span></div>
+  <div class="install-box"><span class="comment"># Windows (PowerShell)</span><br><span class="code">iwr https://raw.githubusercontent.com/luoowei/promptx/main/install.ps1 | iex</span></div>
+  <p class="tip">Then set your API key and start:<br>
+    <code style="background:var(--card-bg);padding:0.25rem 0.75rem;border-radius:4px;color:var(--green);">export OPENAI_API_KEY=sk-...</code>
+    <code style="background:var(--card-bg);padding:0.25rem 0.75rem;border-radius:4px;color:var(--green);margin-left:0.5rem;">px ask "hello"</code>
+  </p>
+</section>
+</div>
+
+<div id="zh-install" class="hidden">
+<section class="install" id="install-zh">
+  <h2 class="section-title">几秒钟内安装</h2>
+  <div class="install-box"><span class="comment"># macOS / Linux</span><br><span class="code">curl -fsSL https://raw.githubusercontent.com/luoowei/promptx/main/install.sh | bash</span></div>
+  <div class="install-box"><span class="comment"># Homebrew</span><br><span class="code">brew install luoowei/tap/promptx</span></div>
+  <div class="install-box"><span class="comment"># Go 安装</span><br><span class="code">go install github.com/luoowei/promptx/cmd/px@latest</span></div>
+  <div class="install-box"><span class="comment"># Windows (PowerShell)</span><br><span class="code">iwr https://raw.githubusercontent.com/luoowei/promptx/main/install.ps1 | iex</span></div>
+  <p class="tip">设置 API 密钥，开始使用：<br>
+    <code style="background:var(--card-bg);padding:0.25rem 0.75rem;border-radius:4px;color:var(--green);">export OPENAI_API_KEY=sk-...</code>
+    <code style="background:var(--card-bg);padding:0.25rem 0.75rem;border-radius:4px;color:var(--green);margin-left:0.5rem;">px ask "你好"</code>
+  </p>
+</section>
+</div>
+
+<!-- Providers -->
+<div id="en-providers">
+<section class="providers">
+  <h2 class="section-title">Works with Your Favorite Models</h2>
+  <div class="provider-grid">
+    <div class="provider-card"><div class="name">OpenAI</div><div class="info">GPT-4o, GPT-4.1</div></div>
+    <div class="provider-card"><div class="name">Anthropic</div><div class="info">Claude Opus, Sonnet</div></div>
+    <div class="provider-card"><div class="name">Ollama</div><div class="info">Llama 3, Mistral, etc.</div></div>
+    <div class="provider-card"><div class="name">OpenRouter</div><div class="info">250+ models unified</div></div>
+    <div class="provider-card"><div class="name">Groq</div><div class="info">Fastest inference</div></div>
+  </div>
+</section>
+</div>
+
+<div id="zh-providers" class="hidden">
+<section class="providers">
+  <h2 class="section-title">兼容你喜欢的模型</h2>
+  <div class="provider-grid">
+    <div class="provider-card"><div class="name">OpenAI</div><div class="info">GPT-4o, GPT-4.1</div></div>
+    <div class="provider-card"><div class="name">Anthropic</div><div class="info">Claude Opus, Sonnet</div></div>
+    <div class="provider-card"><div class="name">Ollama</div><div class="info">Llama 3, Mistral 等</div></div>
+    <div class="provider-card"><div class="name">OpenRouter</div><div class="info">250+ 模型统一接入</div></div>
+    <div class="provider-card"><div class="name">Groq</div><div class="info">最快推理速度</div></div>
+  </div>
+</section>
+</div>
+
+<!-- Links -->
+<div id="en-links">
+<section class="links">
+  <p style="color:var(--muted);margin-bottom:1rem;">Built for developers who live in the terminal</p>
+  <p style="color:var(--heading);font-size:1.2rem;">
+    <a href="https://github.com/luoowei/promptx">GitHub</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/luoowei/promptx/issues">Issues</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/luoowei/promptx/discussions">Discussions</a>
+  </p>
+</section>
+</div>
+
+<div id="zh-links" class="hidden">
+<section class="links">
+  <p style="color:var(--muted);margin-bottom:1rem;">为习惯生活在终端的开发者而打造</p>
+  <p style="color:var(--heading);font-size:1.2rem;">
+    <a href="https://github.com/luoowei/promptx">GitHub</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/luoowei/promptx/blob/main/README_CN.md">中文文档</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/luoowei/promptx/issues">问题反馈</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/luoowei/promptx/discussions">讨论区</a>
+  </p>
+</section>
+</div>
+
+<footer>
+  <p id="en-footer">MIT Licensed &middot; Built with love and Go &middot; <a href="https://github.com/luoowei/promptx">GitHub</a></p>
+  <p id="zh-footer" class="hidden">MIT 开源协议 &middot; 用 Go 和热爱构建 &middot; <a href="https://github.com/luoowei/promptx">GitHub</a></p>
+</footer>
+
+<script>
+// Background animation
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let w, h;
+const particles = [];
+
+function resize() {
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+for (let i = 0; i < 80; i++) {
+  particles.push({
+    x: Math.random() * w, y: Math.random() * h,
+    vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+    size: Math.random() * 2 + 0.5, opacity: Math.random() * 0.5 + 0.1
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, w, h);
+  particles.forEach((p, i) => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+    if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(88, 166, 255, ${p.opacity})`;
+    ctx.fill();
+    particles.forEach((p2, j) => {
+      if (j <= i) return;
+      const dx = p.x - p2.x, dy = p.y - p2.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 120) {
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = `rgba(88, 166, 255, ${0.08 * (1 - dist/120)})`;
+        ctx.stroke();
+      }
+    });
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Language switcher
+function switchLang(lang) {
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + lang).classList.add('active');
+
+  const show = lang === 'en';
+
+  // Toggle all section groups
+  ['content', 'features', 'install', 'providers', 'links', 'footer'].forEach(s => {
+    const enEl = document.getElementById('en-' + s);
+    const zhEl = document.getElementById('zh-' + s);
+    if (enEl) enEl.classList.toggle('hidden', !show);
+    if (zhEl) zhEl.classList.toggle('hidden', show);
+  });
+
+  // Update html lang
+  document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+}
+</script>
+</body>
+</html>
